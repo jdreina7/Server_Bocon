@@ -2,22 +2,52 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
 const User = require('../models/user')
+const _ = require('underscore')
 
 const app = express()
 
 app.get('/', function (req, res) {
-	res.json('Hello World')
+	res.json('All Users')
 })
 
 
 
-app.get('/usuario', function (req, res) {
-	res.json('get Usuario')
+app.get('/user', function (req, res) {
+
+    let from = req.query.desde || 0;
+    let to = req.query.hasta || 5;
+    
+    from = Number(from);
+    to = Number(to);
+    
+    // El finde recibe 2 argumentos, el primero es la condicion de busqueda, y el segundo, es los campos exactos que necesitamos devolver
+    // Pero no es obligatorio, si deseamos realizar una busqueda general lo podemos dejar asi .find({})
+    User.find({ usr_state: true }, 'usr_name usr_last_name usr_email usr_img usr_city usr_last_activity')
+        .skip(from)
+        .limit(to)
+        .exec( (err, users) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    err
+                });
+            }
+
+            // El count recibve 2 argumentos, el primero DEB SER LA MISMA CONDICION DEL FIND, el segundo es el callback
+            User.count({ usr_state: true }, (err, conteo) => {
+                res.json({
+                    ok: true,
+                    users,
+                    total: conteo
+                });
+            })
+
+        })
 })
 
 
 
-app.post('/usuario', function (req, res) {
+app.post('/user', function (req, res) {
     let body = req.body;
     
     let myUser = new User({
@@ -57,11 +87,12 @@ app.post('/usuario', function (req, res) {
 
 
 
-app.put('/usuario/:id', function (req, res) {
+app.put('/user/:id', function (req, res) {
     let id = req.params.id;
-    let body = req.body;
+    let body = _.pick(req.body, 
+        ['usr_name', 'usr_last_name', 'usr_email', 'usr_birthday', 'usr_img', 'usr_role','usr_city','usr_address','usr_phone','usr_celphone','usr_last_activity','usr_state'] );
 
-	User.findByIdAndUpdate( id, body, {new: true}, ( err, usrDB) => {
+	User.findByIdAndUpdate( id, body, {new: true, runValidators: true}, (err, usrDB2) => {
         if (err) {
             return res.status(400).json({
                 ok: false,
@@ -71,15 +102,68 @@ app.put('/usuario/:id', function (req, res) {
 
         res.json({
             ok: true,
-            usuario: usrDB
+            usuario: usrDB2
         });
     })
 })
 
 
 
-app.delete('/usuario', function (req, res) {
-	res.json('delete Usuario')
+app.delete('/user/:id', function (req, res) {
+    let id = req.params.id;
+    
+    // Borrado fisico
+    // User.findByIdAndRemove( id, (err, userDeleted) => {
+    //     if (err) {
+    //         return res.status(400).json({
+    //             ok: false,
+    //             err
+    //         });
+    //     }
+
+    //     if(!userDeleted) {
+    //         return res.status(400).json({
+    //             ok: false,
+    //             err: {
+    //                 message: 'Usuario no existe en la BD'
+    //             }
+    //         })
+    //     }
+
+    //     res.json({
+    //         ok: true,
+    //         usuario: userDeleted
+    //     });
+    // })
+
+
+    // Actualizar el estado: BORRADO LOGICO
+    let delete2 = {
+        usr_state: false
+    };
+	User.findByIdAndUpdate( id, {usr_state: false}, {new: true}, (err, userDeleted2) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        }
+
+        if(!userDeleted2) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no existe en la BD'
+                }
+            })
+        }
+
+        res.json({
+            ok: true,
+            usuario: userDeleted2
+        });
+    })
+
 })
 
 module.exports = app;

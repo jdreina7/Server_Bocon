@@ -11,7 +11,7 @@ app.use(bodyParser.json())
 // Routes
 app.use( require('./routes/users'));
 
-mongoose.connect('mongodb://localhost:27017/bocon_db', (err, res) => {
+mongoose.connect(ENV_DB, (err, res) => {
 
 	if (err) throw err;
 
