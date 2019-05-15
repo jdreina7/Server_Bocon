@@ -8,10 +8,19 @@ const bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-// Routes
-app.use( require('./routes/users'));
+// Importar rutas
+var appRoutes = require('./routes/app');
+var appLogin = require('./routes/login');
+var appUsers = require('./routes/users');
 
-mongoose.connect(ENV_DB, (err, res) => {
+// Routes
+// app.use( require('./routes/users'));
+app.use( '/users', appUsers );
+app.use( '/login', appLogin );
+app.use('/', appRoutes );
+
+
+mongoose.connect(ENV_DB,{ useNewUrlParser: true, useCreateIndex: true }, (err, res) => {
 
 	if (err) throw err;
 

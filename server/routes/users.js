@@ -1,18 +1,20 @@
 
 const express = require('express')
 const bcrypt = require('bcrypt')
-const User = require('../models/user')
 const _ = require('underscore')
+
+const User = require('../models/user')
+
+var auth = require('../middlewares/auth');
+//const SEED_TOKEN = require('../config/seed').SEED;
+const jwt = require('jsonwebtoken');
 
 const app = express()
 
+// ================================
+// OBTENER TODOS LOS USUARIOS
+// ================================
 app.get('/', function (req, res) {
-	res.json('All Users')
-})
-
-
-
-app.get('/user', function (req, res) {
 
     let from = req.query.desde || 0;
     let to = req.query.hasta || 5;
@@ -45,9 +47,16 @@ app.get('/user', function (req, res) {
         })
 })
 
+// ================================
+// VERIFICAR EL TOKEN
+// ================================
 
 
-app.post('/user', function (req, res) {
+
+// ================================
+// CREAR UN USUARIO
+// ================================
+app.post('/user', auth.verifyToken, function (req, res) {
     let body = req.body;
     
     let myUser = new User({
@@ -78,7 +87,8 @@ app.post('/user', function (req, res) {
 
         res.json({
             ok: true,
-            usuario: usrDB
+            usuario: usrDB,
+            usrLogin: req.userLogged
         });
 
     });
@@ -86,8 +96,10 @@ app.post('/user', function (req, res) {
 })
 
 
-
-app.put('/user/:id', function (req, res) {
+// ================================
+// ACTUALIZAR UN USUARIO
+// ================================
+app.put('/user/:id', auth.verifyToken, function (req, res) {
     let id = req.params.id;
     let body = _.pick(req.body, 
         ['usr_name', 'usr_last_name', 'usr_email', 'usr_birthday', 'usr_img', 'usr_role','usr_city','usr_address','usr_phone','usr_celphone','usr_last_activity','usr_state'] );
@@ -102,14 +114,17 @@ app.put('/user/:id', function (req, res) {
 
         res.json({
             ok: true,
-            usuario: usrDB2
+            usuario: usrDB2,
+            usrLogin: req.userLogged
         });
     })
 })
 
 
-
-app.delete('/user/:id', function (req, res) {
+// ================================
+// ELIMINAR/INACTIVAR UN USUARIO
+// ================================
+app.delete('/user/:id', auth.verifyToken, function (req, res) {
     let id = req.params.id;
     
     // Borrado fisico
@@ -160,7 +175,8 @@ app.delete('/user/:id', function (req, res) {
 
         res.json({
             ok: true,
-            usuario: userDeleted2
+            usuario: userDeleted2,
+            usrLogin: req.userLogged
         });
     })
 
