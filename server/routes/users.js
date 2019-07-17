@@ -3,7 +3,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 const _ = require('underscore')
 
-const User = require('../models/user')
+const User = require('../models/user_model')
 
 var auth = require('../middlewares/auth');
 //const SEED_TOKEN = require('../config/seed').SEED;
@@ -24,7 +24,8 @@ app.get('/', function (req, res) {
     
     // El finde recibe 2 argumentos, el primero es la condicion de busqueda, y el segundo, es los campos exactos que necesitamos devolver
     // Pero no es obligatorio, si deseamos realizar una busqueda general lo podemos dejar asi .find({})
-    User.find({ usr_state: true }, 'usr_name usr_last_name usr_email usr_img usr_city usr_last_activity')
+    // User.find({ usr_state: true }, 'usr_role usr_name usr_last_name usr_email usr_img usr_country usr_city usr_gender usr_joined usr_birthday usr_last_activity usr_state')
+    User.find({}, 'usr_role usr_name usr_last_name usr_email usr_img usr_country usr_city usr_gender usr_joined usr_birthday usr_last_activity usr_state')
         .skip(from)
         .limit(to)
         .exec( (err, users) => {
@@ -36,7 +37,8 @@ app.get('/', function (req, res) {
             }
 
             // El count recibve 2 argumentos, el primero DEB SER LA MISMA CONDICION DEL FIND, el segundo es el callback
-            User.count({ usr_state: true }, (err, conteo) => {
+            // User.countDocuments({ usr_state: true }, (err, conteo) => {
+            User.countDocuments( (err, conteo) => {
                 res.json({
                     ok: true,
                     users,
@@ -56,24 +58,31 @@ app.get('/', function (req, res) {
 // ================================
 // CREAR UN USUARIO
 // ================================
-app.post('/user', auth.verifyToken, function (req, res) {
+app.post('/user', function (req, res) {
     let body = req.body;
     
     let myUser = new User({
-        usr_name: body.name,
-        usr_last_name: body.last_name,
-        usr_email: body.email,
-        usr_birthday: body.birthday,
-        usr_password: bcrypt.hashSync(body.password, 10),
-        usr_img: body.img,
-        usr_role: body.role,
-        usr_city: body.city,
-        usr_address: body.address,
-        usr_phone: body.phone,
-        usr_celphone: body.celphone,
-        usr_last_activity: body.last_activity,
-        usr_state: body.state,
-        usr_google: body.google
+        usr_name: body.usr_name,
+        usr_last_name: body.usr_last_name,
+        usr_email: body.usr_email,
+        usr_birthday: body.usr_birthday,
+        usr_password: bcrypt.hashSync(body.usr_password, bcrypt.genSaltSync(10)),
+        usr_img: body.usr_img,
+        usr_img_top: body.usr_img_top,
+        usr_role: body.usr_role,
+        usr_joined: body.usr_joined,
+        usr_gender: body.usr_gender,
+        usr_ocupation: body.usr_ocupation,
+        usr_website: body.usr_website,
+        usr_country: body.usr_country,
+        usr_city: body.usr_city,
+        usr_address: body.usr_address,
+        usr_phone: body.usr_phone,
+        usr_celphone: body.usr_celphone,
+        usr_last_activity: body.usr_last_activity,
+        usr_state: body.usr_state,
+        usr_google: body.usr_google,
+        usr_about: body.usr_about
     });
 
     myUser.save( (err, usrDB) => {
@@ -102,9 +111,9 @@ app.post('/user', auth.verifyToken, function (req, res) {
 app.put('/user/:id', auth.verifyToken, function (req, res) {
     let id = req.params.id;
     let body = _.pick(req.body, 
-        ['usr_name', 'usr_last_name', 'usr_email', 'usr_birthday', 'usr_img', 'usr_role','usr_city','usr_address','usr_phone','usr_celphone','usr_last_activity','usr_state'] );
+        ['usr_name', 'usr_last_name', 'usr_email', 'usr_birthday', 'usr_img', 'usr_img_top', 'usr_role','usr_city','usr_joined', 'usr_gender', 'usr_ocupation', 'usr_website', 'usr_country', 'usr_address','usr_phone','usr_celphone','usr_last_activity','usr_state', 'usr_about'] );
 
-	User.findByIdAndUpdate( id, body, {new: true, runValidators: true}, (err, usrDB2) => {
+	User.findByIdAndUpdate( id, body, { new: true }, (err, usrDB2) => {
         if (err) {
             return res.status(400).json({
                 ok: false,
@@ -120,6 +129,42 @@ app.put('/user/:id', auth.verifyToken, function (req, res) {
     })
 })
 
+// ================================
+// ACTUALIZAR CONTRASEÑA DE USUARIO
+// ================================
+app.put('/userPass/:id', auth.verifyToken, function (req, res) {
+    let id = req.params.id;
+    let pass1 = req.body.usr_password1;
+    let pass2 = req.body.usr_password2;
+
+	User.findById( id, (err, usrDB3) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        }
+
+        if ( !bcrypt.compareSync(pass1, usrDB3.usr_password ) ) {
+            return res.status(400).json({
+                ok: false,
+                message: "Credenciales incorrectas - password",
+                errors: err
+            });
+        } else {
+            usrDB3.usr_password = bcrypt.hashSync(pass2, bcrypt.genSaltSync(10));
+            usrDB3.save();
+
+            res.json({
+                ok: true,
+                usuario: usrDB3,
+                message: "Contraseña actualizada correctamente",
+                usrLogin: req.userLogged
+            });
+        }
+
+    })
+})
 
 // ================================
 // ELIMINAR/INACTIVAR UN USUARIO
@@ -180,6 +225,37 @@ app.delete('/user/:id', auth.verifyToken, function (req, res) {
         });
     })
 
+})
+
+// ================================
+// ACTIVAR UN USUARIO INACTIVADO
+// ================================
+app.put('/activateUser/:id', auth.verifyToken, function (req, res) {
+    let id = req.params.id;
+    
+    User.findByIdAndUpdate( id, {usr_state: true}, {new: true}, (err, usrActivated) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        }
+
+        if(!usrActivated) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no existe en la BD'
+                }
+            })
+        }
+
+        res.json({
+            ok: true,
+            usuario: usrActivated,
+            usrLogin: req.userLogged
+        });
+    })
 })
 
 module.exports = app;

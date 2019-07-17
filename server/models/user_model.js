@@ -23,8 +23,7 @@ let userSchema = new Schema({
         required: [true, 'El correo es Obligatorio']
     },
     usr_birthday: {
-        type: String,
-        required: [true, 'Fecha de nacimiento es Obligatorio']
+        type: Date
     },
     usr_password: {
         type: String,
@@ -33,10 +32,28 @@ let userSchema = new Schema({
     usr_img: {
         type: String
     },
+    usr_img_top: {
+        type: String
+    },
     usr_role: {
         type: String,
         default: 'ROLE_CUSTOMER',
         enum: validRoles
+    },
+    usr_joined: {
+        type: String
+    },
+    usr_gender: {
+        type: String
+    },
+    usr_ocupation: {
+        type: String
+    },
+    usr_website: {
+        type: String
+    },
+    usr_country: {
+        type: String
     },
     usr_city: {
         type: String
@@ -48,8 +65,7 @@ let userSchema = new Schema({
         type: String
     },
     usr_celphone: {
-        type: String,
-        required: [true, 'El celular es requerido']
+        type: String
     },
     usr_last_activity: {
         type: String
@@ -61,6 +77,9 @@ let userSchema = new Schema({
     usr_google: {
         type: Boolean,
         default: false
+    },
+    usr_about: {
+        type: String
     }
 });
 

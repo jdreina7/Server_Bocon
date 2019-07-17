@@ -1,6 +1,6 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
-const User = require('../models/user')
+const User = require('../models/user_model')
 const _ = require('underscore')
 
 const SEED_TOKEN = require('../config/seed').SEED;
@@ -12,12 +12,12 @@ app.post('/', (req, res) => {
 
     let body = req.body;
 
-    User.findOne({ usr_email: body.email }, (err, userBD ) => {
+    User.findOne({ usr_email: body.usr_email }, (err, userBD ) => {
 
         if ( err ) {
             return res.status(500).json({
                 ok: false,
-                message: "Error en la BD al loguear el usuario!",
+                message: "DB ERROR TRYING LOGIN THE USER!",
                 errors: err
             });
         }
@@ -25,15 +25,23 @@ app.post('/', (req, res) => {
         if ( !userBD ) {
             return res.status(400).json({
                 ok: false,
-                message: "Credenciales incorrectas - email",
+                message: "UPS!, WRONG EMAIL!",
                 errors: err
             });
         }
 
-        if ( !bcrypt.compareSync(body.password, userBD.usr_password ) ) {
+        if ( userBD.usr_state === false ) {
+            return res.status(403).json({
+                ok: false,
+                message: "FORBIDDEN - USER INACTIVE, CONTACT WITH THE ADMINISTRATOR SYSTEM",
+                errors: err
+            });
+        }
+
+        if ( !bcrypt.compareSync(body.usr_password, userBD.usr_password ) ) {
             return res.status(400).json({
                 ok: false,
-                message: "Credenciales incorrectas - password",
+                message: "WRONG PASSWORD!",
                 errors: err
             });
         }
@@ -44,7 +52,7 @@ app.post('/', (req, res) => {
 
         res.status(200).json({
             ok: true,
-            mensaje: 'Login post correcto!',
+            mensaje: 'LOGIN SUCCESFULL!',
             user: userBD,
             id: userBD._id,
             token: token
@@ -53,8 +61,6 @@ app.post('/', (req, res) => {
     });
 
 })
-
-
 
 
 module.exports = app;
